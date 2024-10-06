@@ -2,11 +2,16 @@
 
 
 #include "GoblinsRing/Interactables/DoorInteractable.h"
+#include "GoblinsRing/VettiyanCharacter.h"
+#include "Components/BoxComponent.h"
 
 ADoorInteractable::ADoorInteractable()
 {
 	doorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Door_Mesh"));
 	doorMeshComponent->SetupAttachment(GetRootComponent());
+
+    crossDedectionBoxComponent = CreateDefaultSubobject<UBoxComponent>("FrontCrossDedector");
+    crossDedectionBoxComponent->SetupAttachment(GetRootComponent());
 }
 
 void ADoorInteractable::Tick(float DeltaTime)
@@ -15,45 +20,61 @@ void ADoorInteractable::Tick(float DeltaTime)
 
     if (bIsRotating)
     {
-        // Interpolate towards the target yaw smoothly
-        float NewYaw = FMath::FInterpTo(CurrentYaw, TargetYaw, DeltaTime, RotationSpeed);
+        float newYaw = FMath::FInterpTo(currentYaw,tempYaw, DeltaTime, RotationSpeed);
+        doorMeshComponent->SetRelativeRotation(FRotator(0, newYaw, 0));
+        currentYaw = newYaw;
 
-        // Set the new yaw to the door mesh
-        doorMeshComponent->SetRelativeRotation(FRotator(0, NewYaw, 0));
-
-        // Update CurrentYaw to track the door's rotation progress
-        CurrentYaw = NewYaw;
-
-        // Check if we've reached the target yaw
-        if (FMath::IsNearlyEqual(CurrentYaw, TargetYaw, 1.f))
+        if (bIsOpened)
         {
-            // Once reached, stop the rotation
-            bIsRotating = false;
+            if (FMath::IsNearlyEqual(currentYaw,initialYaw, 0.5f))
+            {
+                bIsRotating = false;
+                bIsOpened = false;
+            }
         }
+        else
+        {
+            if (FMath::IsNearlyEqual(currentYaw, TargetYaw, 0.5f))
+            {
+                bIsRotating = false;
+                bIsOpened = true;
+            }
+        }
+        
     }
 }
 
 void ADoorInteractable::BeginPlay()
 {
 	Super::BeginPlay();
+    initialYaw = doorMeshComponent->GetRelativeRotation().Yaw; // Storing the Initial Yaw for Closing Purpose
+    crossDedectionBoxComponent->OnComponentEndOverlap.AddDynamic(this, &ADoorInteractable::OnCrossDedectorEndOverLap);
 }
 
 void ADoorInteractable::StartOpening()
 {
     bIsRotating = true;
+    tempYaw = TargetYaw;
+}
+
+void ADoorInteractable::OnCrossDedectorEndOverLap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+    if (!bIsOpened) return;
+    if (AVettiyanCharacter* vettiyanCharacter = Cast<AVettiyanCharacter>(OtherActor))
+    {
+        bIsRotating = true;
+        tempYaw = initialYaw;
+        if (GEngine)
+        {
+            GEngine->AddOnScreenDebugMessage(1, 3, FColor::Blue, FString::Printf(TEXT("The Vettiyan Crossed the Cross Dedector")));
+        }
+    }
 }
 
 void ADoorInteractable::Interact()
 {
 	Super::Interact();
-    // Set target yaw to rotate towards
-    TargetYaw = 100.f;  // You can change this value based on door state (open/close)
-
-    // Get current yaw of the door mesh
-    CurrentYaw = doorMeshComponent->GetRelativeRotation().Yaw;
-
-    // Set the flag to true so that Tick can handle the smooth rotation
-    // Set a timer to delay the rotation by a certain amount of time
-    GetWorld()->GetTimerManager().SetTimer(RotationDelayHandle, this, &ADoorInteractable::StartOpening, DelayBeforeOpening, false);
+    currentYaw = doorMeshComponent->GetRelativeRotation().Yaw;
+    GetWorld()->GetTimerManager().SetTimer(rotationDelayHandle, this, &ADoorInteractable::StartOpening, DelayBeforeOpening, false);
 
 }

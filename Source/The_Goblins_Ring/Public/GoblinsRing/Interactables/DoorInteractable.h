@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GoblinsRing/Interactables/Interactable.h"
+#include "GameFramework/Actor.h"
 #include "DoorInteractable.generated.h"
 
 /**
@@ -35,10 +36,20 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Door_Properties")
 	float DelayBeforeOpening = 2.f;
+
+	UPROPERTY(VisibleAnywhere)
+	class UBoxComponent* crossDedectionBoxComponent;
+
+	UFUNCTION()
+	void OnCrossDedectorEndOverLap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 	
 private:
 	bool bIsRotating = false;  // Flag to control whether the door is currently rotating
-	float CurrentYaw = 0.f;
+	bool bIsOpened = false;
+	float currentYaw = 0.f;
+	float initialYaw = 0.f;
+	float tempYaw = 0.f;
 
-	FTimerHandle RotationDelayHandle;  // Timer handle for delay
+	FTimerHandle rotationDelayHandle;  // Timer handle for delay
 };
