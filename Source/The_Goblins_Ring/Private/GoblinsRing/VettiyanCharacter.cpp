@@ -8,8 +8,10 @@
 #include "GoblinsRing/Attributes/VettiyanAttributes.h"
 #include "Animation/AnimMontage.h"
 #include "GoblinsRing/Interactables/Interactable.h"
-#include"GoblinsRing/Interactables/DoorInteractable.h"
+#include "GoblinsRing/Interactables/DoorInteractable.h"
+#include "GoblinsRing/Interactables/HideInteractable.h"
 #include "GoblinsRing/HUD/StaminaBarWidget.h"
+#include "Components/CapsuleComponent.h"
 
 
 AVettiyanCharacter::AVettiyanCharacter()
@@ -147,7 +149,18 @@ void AVettiyanCharacter::StopSprinting()
 
 void AVettiyanCharacter::Interact()
 {
+	//The Player is Currently Hiding 
+	if (hideInteractableObj != nullptr)
+	{
+		SetVettiyanPosAndRot(hideInteractableObj->GetReleasingPoint());
+		MakeUnOccupied();
+		SetHideInteractable(nullptr);
+		return;
+	}
+
 	if (overlappingInteractable == nullptr) return;
+
+	// If its Door Interactable
 	if (ADoorInteractable* doorInteractable = Cast<ADoorInteractable>(overlappingInteractable))
 	{
 		doorInteractable->Interact();
@@ -159,11 +172,12 @@ void AVettiyanCharacter::Interact()
 			animInstance->Montage_JumpToSection(FName("OpenDoor"), doorOpenMontage);
 			vettiyanState = EVettiyanStates::EVS_Occupied;
 		}
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(2, 2, FColor::Red, FString::Printf(TEXT("Door")));
-		}
+	}
+	// Hide Interactable
+	else if (AHideInteractable* hideInteractable = Cast<AHideInteractable>(overlappingInteractable))
+	{
+		hideInteractable->Interact();
+		hideInteractable->HideVettiyan(this);
 	}
 	else
 	{
@@ -248,5 +262,26 @@ void AVettiyanCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(sprintAction, ETriggerEvent::Completed, this, &AVettiyanCharacter::StopSprinting);
 		EnhancedInputComponent->BindAction(interactAction, ETriggerEvent::Started, this, &AVettiyanCharacter::Interact);
 	}
+}
+
+void AVettiyanCharacter::SeizeCharacter()
+{
+	vettiyanState = EVettiyanStates::EVS_Occupied;
+}
+
+void AVettiyanCharacter::UnSeizeCharacter()
+{
+
+}
+
+void AVettiyanCharacter::SetVettiyanPosAndRot(USceneComponent* sceneComponent)
+{
+	FVector HidingLocation = sceneComponent->GetComponentLocation();
+	FRotator HidingRotation = sceneComponent->GetComponentRotation();
+
+	GetCapsuleComponent()->SetWorldLocation(HidingLocation);
+	SetActorRotation(HidingRotation);
+
+	Controller->SetControlRotation(HidingRotation);
 }
 

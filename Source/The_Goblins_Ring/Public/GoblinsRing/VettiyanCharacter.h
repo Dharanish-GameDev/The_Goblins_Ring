@@ -13,6 +13,7 @@ class UInputAction;
 class UVettiyanAttributes;
 class UStaminaBarWidget;
 class AInteractable;
+class AHideInteractable;
 
 UCLASS()
 class THE_GOBLINS_RING_API AVettiyanCharacter : public ACharacter
@@ -23,6 +24,9 @@ public:
 	AVettiyanCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	void SeizeCharacter();
+	void UnSeizeCharacter();
+	void SetVettiyanPosAndRot(USceneComponent* sceneComponent);
 
 protected:
 	virtual void BeginPlay() override;
@@ -108,9 +112,13 @@ private:
 	UPROPERTY()
 	UStaminaBarWidget* staminaBarWidgetInstance;
 
+	UPROPERTY()
+	AHideInteractable* hideInteractableObj;
+
 
 public:
 
 	FORCEINLINE void SetOverlappingInteractable(AInteractable* interactable) {overlappingInteractable = interactable;}
+	FORCEINLINE void SetHideInteractable(AHideInteractable* hideInterac) { hideInteractableObj = hideInterac;}
 	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
 };

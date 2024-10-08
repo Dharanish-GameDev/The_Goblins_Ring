@@ -7,6 +7,7 @@
 
 ADoorInteractable::ADoorInteractable()
 {
+    PrimaryActorTick.bCanEverTick = true;
 	doorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Door_Mesh"));
 	doorMeshComponent->SetupAttachment(GetRootComponent());
 
@@ -74,6 +75,10 @@ void ADoorInteractable::OnCrossDedectorEndOverLap(UPrimitiveComponent* Overlappe
 void ADoorInteractable::Interact()
 {
 	Super::Interact();
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(3, 2, FColor::Yellow, FString::Printf(TEXT("Its Door Interactable!")));
+    }
     currentYaw = doorMeshComponent->GetRelativeRotation().Yaw;
     GetWorld()->GetTimerManager().SetTimer(rotationDelayHandle, this, &ADoorInteractable::StartOpening, DelayBeforeOpening, false);
 
